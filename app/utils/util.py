@@ -2,14 +2,30 @@ import json
 import time
 import uuid
 from datetime import datetime, timedelta
-import redis
 
+import redis
 import slack
 from telegram import Bot
 
 from utils.myconfig import ConfigLoader
 
 config = ConfigLoader.load_config()
+
+G_REDIS_CLIENT = None
+
+
+def get_redis_client():
+    global G_REDIS_CLIENT
+    if G_REDIS_CLIENT is None:
+        pool = redis.ConnectionPool(
+            host=config["redis"]["host"],
+            port=config["redis"]["port"],
+            password=config["redis"]["password"],
+            db=config["redis"]["db"],
+            decode_responses=True
+        )
+        G_REDIS_CLIENT = redis.Redis(connection_pool=pool)
+    return G_REDIS_CLIENT
 
 
 def get_timestamp():
@@ -81,18 +97,3 @@ class ServerError(Error):
     def __init__(self, status_code, message):
         self.status_code = status_code
         self.message = message
-
-
-G_REDIS_CLIENT = None
-def get_redis_client():
-    global G_REDIS_CLIENT
-    if G_REDIS_CLIENT is None:
-        pool = redis.ConnectionPool(
-            host=config["redis"]["host"],
-            port=config["redis"]["port"],
-            password=config["redis"]["password"],
-            db=config["redis"]["db"],
-            decode_responses=True
-        )
-        G_REDIS_CLIENT = redis.Redis(connection_pool=pool)
-    return G_REDIS_CLIENT
