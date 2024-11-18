@@ -68,8 +68,8 @@ def clean_none_value(input_dict):
 
 
 def send_message(alert_message):
-    telegram_alert_to = "\n@Merlin_WG @carbo_WG"
-    slack_alert_to = "\n<@merlin> <@carbo.huang>"
+    telegram_alert_to = "\n@Merlin_WG @Chiwei_WG"
+    slack_alert_to = "\n<@merlin> <@chiwei.huang>"
     Bot(config["common"]["telegram_bot_token"]).send_message(
         config["common"]["telegram_chat_id"],
         alert_message + telegram_alert_to,
