@@ -5,7 +5,10 @@ from datetime import datetime, timedelta
 
 import redis
 import slack
+from base58 import b58decode
+from eth_utils import is_hexstr
 from telegram import Bot
+from web3 import Web3
 
 from utils.myconfig import ConfigLoader
 
@@ -78,6 +81,31 @@ def send_message(alert_message):
     slack.WebClient(config["common"]["slack_bot_token"]).chat_postMessage(
         channel=config["common"]["slack_channel"], text=alert_message + slack_alert_to
     )
+
+
+def is_evm_address(address):
+    if not address:
+        return False
+    if not isinstance(address, str):
+        return False
+    if len(address) != 42 or not address.startswith("0x"):
+        return False
+    if not is_hexstr(address):
+        return False
+    try:
+        _ = Web3.to_checksum_address(address)
+    except:
+        return False
+
+    return True
+
+
+def is_svm_address(address):
+    try:
+        decoded = b58decode(address)
+        return len(decoded) == 32
+    except:
+        return False
 
 
 class Error(Exception):

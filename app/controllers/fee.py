@@ -1,4 +1,5 @@
 import datetime
+import sys
 import time
 from decimal import Decimal
 
@@ -16,13 +17,20 @@ from utils.cache import JsonHandler
 from utils.myconfig import ConfigLoader
 from utils.mylogging import setup_logging
 from utils.pd import BrokerFee, StakingBal
-from utils.util import get_redis_client, send_message
+from utils.util import get_redis_client, send_message, is_evm_address, is_svm_address
 
 config = ConfigLoader.load_config()
 logger = setup_logging()
 
 REDIS_HASH_GRACE_PERIOD_FORMAT = f'woofi_pro:hash_grace_period:tier%s:{config["common"]["orderly_network"].lower()}'
 REDIS_HASH_ACCOUNT_ID2ADDRESS = f'woofi_pro:account_id2address:{config["common"]["orderly_network"].lower()}'
+
+# NOTE: "all" / "evm" / "svm" / "none"
+REDIS_KEY_HOSTING_CAMPAIGN_FIXED_TIER_NETWORK = f'woofi_pro:hosting_campaign_fixed_tier_network:{config["common"]["orderly_network"].lower()}'
+# NOTE: "1" / "2" / "3" / "4" / "5" / "6"
+REDIS_KEY_HOSTING_CAMPAIGN_FIXED_TIER = f'woofi_pro:hosting_campaign_fixed_tier:{config["common"]["orderly_network"].lower()}'
+REDIS_KEY_HOSTING_CAMPAIGN_FIXED_TIER_START_TS = f'woofi_pro:hosting_campaign_fixed_tier_start_ts:{config["common"]["orderly_network"].lower()}'
+REDIS_KEY_HOSTING_CAMPAIGN_FIXED_TIER_END_TS = f'woofi_pro:hosting_campaign_fixed_tier_end_ts:{config["common"]["orderly_network"].lower()}'
 
 
 def init_broker_fees():
@@ -288,6 +296,23 @@ def update_user_rates():
         user_fee, tier_count
     )
 
+    redis_client = get_redis_client()
+
+    hosting_campaign_fixed_tier_network = redis_client.get(REDIS_KEY_HOSTING_CAMPAIGN_FIXED_TIER_NETWORK)
+    hosting_campaign_fixed_tier = redis_client.get(REDIS_KEY_HOSTING_CAMPAIGN_FIXED_TIER)
+
+    hosting_campaign_fixed_tier_start_ts = redis_client.get(REDIS_KEY_HOSTING_CAMPAIGN_FIXED_TIER_START_TS)
+    hosting_campaign_fixed_tier_end_ts = redis_client.get(REDIS_KEY_HOSTING_CAMPAIGN_FIXED_TIER_END_TS) or sys.maxsize
+
+    tier_fee_rates = {
+        _tier["tier"]: {
+            "futures_maker_fee_rate": Decimal(_tier["maker_fee"].replace("%", "")) / 100,
+            "futures_taker_fee_rate": Decimal(_tier["taker_fee"].replace("%", "")) / 100,
+            "tier": _tier["tier"],
+        }
+        for _tier in config["rate"]["fee_tier"]
+    }
+    now = int(time.time())
     data = []
     for _account_id, _address in account_id2address.items():
         if _account_id in grace_period_tier_all_account_ids:
@@ -297,6 +322,14 @@ def update_user_rates():
         staking_bal = account_id2data.get(_account_id, {}).get("staking_bal", 0)
 
         _user_fee = get_user_fee_rates(perp_volume, staking_bal)
+        if int(hosting_campaign_fixed_tier_start_ts) <= now < hosting_campaign_fixed_tier_end_ts:
+            if (
+                hosting_campaign_fixed_tier_network == "all"
+                or (hosting_campaign_fixed_tier_network == "evm" and is_evm_address(_address))
+                or (hosting_campaign_fixed_tier_network == "svm" and is_svm_address(_address))
+            ) and int(_user_fee["tier"]) < int(hosting_campaign_fixed_tier):
+                _user_fee = tier_fee_rates[hosting_campaign_fixed_tier]
+
         if not _user_fee:
             alert_message = f'WOOFi Pro {config["common"]["orderly_network"]} - get_user_fee_rates, _address: {_address}, perp_volume: {perp_volume}, staking_bal: {staking_bal}'
             send_message(alert_message)
