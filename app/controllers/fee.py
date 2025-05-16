@@ -322,7 +322,7 @@ def update_user_rates():
         staking_bal = account_id2data.get(_account_id, {}).get("staking_bal", 0)
 
         _user_fee = get_user_fee_rates(perp_volume, staking_bal)
-        if int(hosting_campaign_fixed_tier_start_ts) <= now < hosting_campaign_fixed_tier_end_ts:
+        if int(hosting_campaign_fixed_tier_start_ts) <= now < int(hosting_campaign_fixed_tier_end_ts):
             if (
                 hosting_campaign_fixed_tier_network == "all"
                 or (hosting_campaign_fixed_tier_network == "evm" and is_evm_address(_address))
