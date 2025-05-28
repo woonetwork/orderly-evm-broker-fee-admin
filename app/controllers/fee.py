@@ -93,7 +93,7 @@ def init_staking_bals():
                 while retry > 0:
                     data = get_account(_bal["address"], broker_id)
                     time.sleep(0.1)
-                    if not data or (not data.get("data") and data.get("message", "") != "account does not exist"):
+                    if not data or (not data.get("data") and data.get("message", "") != "Account not found."):
                         retry -= 1
                         alert_message = f'WOOFi Pro {config["common"]["orderly_network"]} - get_account failed, address: {_bal["address"]}, retry: {retry}'
                         logger.info(alert_message)
@@ -104,8 +104,8 @@ def init_staking_bals():
                     alert_message = f'WOOFi Pro {config["common"]["orderly_network"]} - get_account failed, address: {_bal["address"]}, retry: {retry}'
                     send_message(alert_message)
                     continue
-                if data.get("message", "") == "account does not exist":
-                    logger.info(f'address: {_bal["address"]} account does not exist')
+                if data.get("message", "") == "Account not found.":
+                    logger.info(f'address: {_bal["address"]} account not found')
                     continue
                 account_id = data["data"]["account_id"]
                 address2account_id.update_content(_bal["address"], account_id)
