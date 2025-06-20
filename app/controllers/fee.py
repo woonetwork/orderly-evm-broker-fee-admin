@@ -81,44 +81,61 @@ def init_broker_fees():
 def init_staking_bals():
     staking_bals = get_staking_bals()
     if staking_bals:
-        address2bal = {}
+        # address2bal = {}
+        user_fee = BrokerFee(_type="broker_user_fee")
+        address2account_ids = {}
+
+        for _row in user_fee.pd.df.itertuples():
+            if _row.address not in address2account_ids:
+                address2account_ids[_row.address] = [_row.account_id]
+            else:
+                address2account_ids[_row.address].append(_row.account_id)
+
         staking_bal = StakingBal(_type="staking_user_bal")
         # verify_address2account_id = {}
-        address2account_id = JsonHandler("address2account_id")
-        broker_id = "woofi_pro"
+        # address2account_id = JsonHandler("address2account_id")
+        # broker_id = "woofi_pro"
         for _bal in staking_bals:
-            account_id = address2account_id.get_content(_bal["address"])
-            if account_id is None:
-                retry = 3
-                while retry > 0:
-                    data = get_account(_bal["address"], broker_id)
-                    time.sleep(0.1)
-                    if not data or (not data.get("data") and data.get("message", "") != "Account not found."):
-                        retry -= 1
-                        alert_message = f'WOOFi Pro {config["common"]["orderly_network"]} - get_account failed, address: {_bal["address"]}, retry: {retry}'
-                        logger.info(alert_message)
-                        continue
-                    else:
-                        break
-                if data is None:
-                    alert_message = f'WOOFi Pro {config["common"]["orderly_network"]} - get_account failed, address: {_bal["address"]}, retry: {retry}'
-                    send_message(alert_message)
-                    continue
-                if data.get("message", "") == "Account not found.":
-                    logger.info(f'address: {_bal["address"]} account not found')
-                    continue
-                account_id = data["data"]["account_id"]
-                address2account_id.update_content(_bal["address"], account_id)
-                # verify_address2account_id[_bal["address"]] = account_id
-                logger.info(f'address: {_bal["address"]}, get account_id: {account_id}')
-            address2bal[_bal["address"]] = _bal["bal"]
-            staking_bal.create_update_user_bal_data({
-                "account_id": account_id,
-                "bal": _bal["bal"],
-                "address": _bal["address"],
-            }, delete_flag=True)
+            account_ids = address2account_ids.get(_bal["address"], [])
+            for account_id in account_ids:
+                staking_bal.create_update_user_bal_data({
+                    "account_id": account_id,
+                    "bal": _bal["bal"],
+                    "address": _bal["address"],
+                }, delete_flag=True)
 
-        address2account_id.write_json()
+            # account_id = address2account_id.get_content(_bal["address"])
+            # if account_id is None:
+            #     retry = 3
+            #     while retry > 0:
+            #         data = get_account(_bal["address"], broker_id)
+            #         time.sleep(0.1)
+            #         if not data or (not data.get("data") and data.get("message", "") != "Account not found."):
+            #             retry -= 1
+            #             alert_message = f'WOOFi Pro {config["common"]["orderly_network"]} - get_account failed, address: {_bal["address"]}, retry: {retry}'
+            #             logger.info(alert_message)
+            #             continue
+            #         else:
+            #             break
+            #     if data is None:
+            #         alert_message = f'WOOFi Pro {config["common"]["orderly_network"]} - get_account failed, address: {_bal["address"]}, retry: {retry}'
+            #         send_message(alert_message)
+            #         continue
+            #     if data.get("message", "") == "Account not found.":
+            #         logger.info(f'address: {_bal["address"]} account not found')
+            #         continue
+            #     account_id = data["data"]["account_id"]
+            #     address2account_id.update_content(_bal["address"], account_id)
+            #     # verify_address2account_id[_bal["address"]] = account_id
+            #     logger.info(f'address: {_bal["address"]}, get account_id: {account_id}')
+            # address2bal[_bal["address"]] = _bal["bal"]
+            # staking_bal.create_update_user_bal_data({
+            #     "account_id": account_id,
+            #     "bal": _bal["bal"],
+            #     "address": _bal["address"],
+            # }, delete_flag=True)
+
+        # address2account_id.write_json()
 
         # verify_address2account_id_write(verify_address2account_id)
 
@@ -254,12 +271,17 @@ def update_user_rates():
     user_fee = BrokerFee(_type="broker_user_fee")
     staking_bal = StakingBal(_type="staking_user_bal")
     account_id2data = {}
+    address2account_ids = {}
     for _row in staking_bal.pd.df.itertuples():
         account_id2data[_row.account_id] = {
             "staking_bal": Decimal(_row.bal),
             "perp_volume": 0,
             "address": _row.address,
         }
+        if _row.address not in address2account_ids:
+            address2account_ids[_row.address] = [_row.account_id]
+        else:
+            address2account_ids[_row.address].append(_row.account_id)
 
     while True:
         _data = get_broker_users_volumes(_count)
@@ -271,15 +293,26 @@ def update_user_rates():
             break
         if _data:
             for _row in _data["data"]["rows"]:
-                _account_id = _row["account_id"]
-                if _account_id in account_id2data:
-                    account_id2data[_account_id]["perp_volume"] = _row["perp_volume"]
-                else:
-                    account_id2data[_account_id] = {
-                        "staking_bal": 0,
-                        "perp_volume": _row["perp_volume"],
-                        "address": _row["address"],
-                    }
+                account_ids = address2account_ids.get(_row["address"], [])
+                for _account_id in account_ids:
+                    if _account_id in account_id2data:
+                        account_id2data[_account_id]["perp_volume"] = _row["perp_volume"]
+                    else:
+                        account_id2data[_account_id] = {
+                            "staking_bal": 0,
+                            "perp_volume": _row["perp_volume"],
+                            "address": _row["address"],
+                        }
+
+                # _account_id = _row["account_id"]
+                # if _account_id in account_id2data:
+                #     account_id2data[_account_id]["perp_volume"] = _row["perp_volume"]
+                # else:
+                #     account_id2data[_account_id] = {
+                #         "staking_bal": 0,
+                #         "perp_volume": _row["perp_volume"],
+                #         "address": _row["address"],
+                #     }
 
         _count += 1
         time.sleep(2)

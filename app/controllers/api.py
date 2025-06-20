@@ -52,14 +52,23 @@ def set_broker_default_rate(maker_fee_rate, taker_fee_rate):
 
 def get_broker_users_volumes(count):
     start_time, end_time = get_report_days()
+    # _payload = {
+    #     "start_date": start_time,
+    #     "end_date": end_time,
+    #     "size": "500",
+    #     "page": count,
+    #     "aggregateBy": "account",
+    # }
+    # _volumes = sign_request("GET", "/v1/volume/broker/daily", payload=_payload)
     _payload = {
-        "start_date": start_time,
-        "end_date": end_time,
+        "start_date": start_time.split(" ")[0],
+        "end_date": end_time.split(" ")[0],
         "size": "500",
         "page": count,
-        "aggregateBy": "account",
+        "broker_id": "woofi_pro",
+        "aggregateBy": "address_per_builder",
     }
-    _volumes = sign_request("GET", "/v1/volume/broker/daily", payload=_payload)
+    _volumes = sign_request("GET", "/v1/broker/leaderboard/daily", payload=_payload)
     return _volumes
 
 
