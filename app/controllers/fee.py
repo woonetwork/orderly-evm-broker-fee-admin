@@ -55,7 +55,7 @@ def init_broker_fees():
                 # }
                 broker_fee.create_update_user_fee_data(_data, delete_flag=True)
         _count += 1
-        time.sleep(2)
+        time.sleep(1)
 
     # verify_broker_fees_data(address2fee_rate, init_broker_fees.__name__)
 
