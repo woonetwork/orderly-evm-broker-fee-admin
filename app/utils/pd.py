@@ -103,6 +103,7 @@ class BrokerFee:
 
     def create_update_user_fee_data(self, rec, delete_flag=False):
         rec.pop("fee_tier", None)
+        rec.pop("is_default_fee_rate", None)
         rec["update_time"] = get_now_datetime()
         if delete_flag and self.flag:
             self.remove_user_fee_data()
