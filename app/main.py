@@ -35,7 +35,7 @@ if __name__ == "__main__":
         update_broker_default_fee(args[1], args[2])
     elif args[0] == "update-user-special-rate" and len(args) == 4:
         update_user_special_rate(args[1], args[2], args[3])
-    elif args[0] == "get_broker_default_rate":
+    elif args[0] == "get-broker-default-rate":
         fetch_broker_default_rate()
     elif args[0] == "update-user-rate":
         if config["rate"]["startup_batch_update_fee"]:
