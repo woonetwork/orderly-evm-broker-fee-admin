@@ -270,8 +270,15 @@ def update_user_rates():
     _count = 1
     user_fee = BrokerFee(_type="broker_user_fee")
     staking_bal = StakingBal(_type="staking_user_bal")
-    account_id2data = {}
+
     address2account_ids = {}
+    for _row in user_fee.pd.df.itertuples():
+        if _row.address not in address2account_ids:
+            address2account_ids[_row.address] = [_row.account_id]
+        else:
+            address2account_ids[_row.address].append(_row.account_id)
+
+    account_id2data = {}
     for _row in staking_bal.pd.df.itertuples():
         account_id2data[_row.account_id] = {
             "staking_bal": Decimal(_row.bal),
@@ -281,7 +288,8 @@ def update_user_rates():
         if _row.address not in address2account_ids:
             address2account_ids[_row.address] = [_row.account_id]
         else:
-            address2account_ids[_row.address].append(_row.account_id)
+            if _row.account_id not in address2account_ids[_row.address]:
+                address2account_ids[_row.address].append(_row.account_id)
 
     while True:
         _data = get_broker_users_volumes(_count)
