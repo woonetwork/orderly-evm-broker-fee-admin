@@ -32,6 +32,9 @@ REDIS_KEY_HOSTING_CAMPAIGN_FIXED_TIER = f'woofi_pro:hosting_campaign_fixed_tier:
 REDIS_KEY_HOSTING_CAMPAIGN_FIXED_TIER_START_TS = f'woofi_pro:hosting_campaign_fixed_tier_start_ts:{config["common"]["orderly_network"].lower()}'
 REDIS_KEY_HOSTING_CAMPAIGN_FIXED_TIER_END_TS = f'woofi_pro:hosting_campaign_fixed_tier_end_ts:{config["common"]["orderly_network"].lower()}'
 
+REDIS_KEY_UNIFIED_MAKER_FEE_RATE = f'woofi_pro:unified_maker_fee_rate:{config["common"]["orderly_network"].lower()}'
+REDIS_KEY_UNIFIED_TAKER_FEE_RATE = f'woofi_pro:unified_taker_fee_rate:{config["common"]["orderly_network"].lower()}'
+
 
 def init_broker_fees():
     # 每次启动，将当前Broker所有用户费率配置情况更新到本地数据库
@@ -443,10 +446,74 @@ def update_user_rates():
     logger.info("Broker user rate update completed")
 
 
+def update_unified_user_rates():
+    logger.info("Broker user rate update started")
+    user_fee = BrokerFee(_type="broker_user_fee")
+    # address2account_ids = {}
+    # for _row in user_fee.pd.df.itertuples():
+    #     if _row.address not in address2account_ids:
+    #         address2account_ids[_row.address] = [_row.account_id]
+    #     else:
+    #         address2account_ids[_row.address].append(_row.account_id)
+    account_id2address = {_row.account_id: _row.address for _row in user_fee.pd.df.itertuples()}
+
+    redis_client = get_redis_client()
+    new_futures_maker_fee_rate = Decimal(redis_client.get(REDIS_KEY_UNIFIED_MAKER_FEE_RATE)) / 100
+    new_futures_taker_fee_rate = Decimal(redis_client.get(REDIS_KEY_UNIFIED_TAKER_FEE_RATE)) / 100
+
+    data = []
+    for _account_id, _address in account_id2address.items():
+        old_user_fee = user_fee.pd.query_data(_account_id)
+        if not old_user_fee.empty:
+            _old_futures_maker_fee_rate = Decimal(old_user_fee.futures_maker_fee_rate.values[0])
+            _old_futures_taker_fee_rate = Decimal(old_user_fee.futures_taker_fee_rate.values[0])
+            try:
+                if (
+                    new_futures_maker_fee_rate
+                    != _old_futures_maker_fee_rate
+                    or new_futures_taker_fee_rate
+                    != _old_futures_taker_fee_rate
+                ):
+                    maker_fee_rate = new_futures_maker_fee_rate
+                    taker_fee_rate = new_futures_taker_fee_rate
+                    logger.info(
+                        f"{_account_id} - New Maker Fee Rate: {maker_fee_rate}, Taker Fee Rate: {taker_fee_rate}"
+                    )
+                    _ret = {
+                        "account_id": _account_id,
+                        "futures_maker_fee_rate": maker_fee_rate,
+                        "futures_taker_fee_rate": taker_fee_rate,
+                        "address": _address,
+                    }
+                    data.append(_ret)
+                    user_fee.create_update_user_fee_data(_ret)
+            except:
+                logger.info(f"{_account_id} - new rates are not updated")
+        else:
+            _ret = {
+                "account_id": _account_id,
+                "futures_maker_fee_rate": new_futures_maker_fee_rate,
+                "futures_taker_fee_rate": new_futures_taker_fee_rate,
+                "address": _address,
+            }
+            data.append(_ret)
+            user_fee.create_update_user_fee_data(_ret)
+
+    ok_count, fail_count = set_broker_user_fee(data)
+
+    alert_message = f'WOOFi Pro {config["common"]["orderly_network"]} - update_unified_user_rates, ok_count: {ok_count}, fail_count: {fail_count}'
+    send_message(alert_message)
+
+    logger.info("Broker user rate update completed")
+
+
 def update_user_rate():
     logger.info(
         "========================Orderly EVM Broker Fee Admin Startup========================"
     )
     init_broker_fees()
-    init_staking_bals()
-    update_user_rates()
+    update_unified_user_rates()
+
+    # NOTE: tier 1 ~ 6 logic, offline since 21 Aug 2025
+    # init_staking_bals()
+    # update_user_rates()
