@@ -177,7 +177,7 @@ def update_broker_default_fee(maker_fee, taker_fee):
         _data = get_broker_default_rate()
         if _data:
             logger.info(
-                f'Modifying Broker Default Fees:  Maker Fee {_data["data"]["maker_fee_rate"]}->{maker_fee},Taker Fee {_data["data"]["taker_fee_rate"]}->{taker_fee}'
+                f'Modifying Broker Default Fees:  Maker Fee {_data["data"]["maker_fee_rate"]} -> {maker_fee}, Taker Fee {_data["data"]["taker_fee_rate"]} -> {taker_fee}'
             )
         set_broker_default_rate(maker_fee, taker_fee)
     except Exception as e:
