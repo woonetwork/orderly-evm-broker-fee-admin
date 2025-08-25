@@ -19,7 +19,7 @@ def run():
     try:
         logger.info("update-user-rate task startup")
         scheduler.add_job(
-            fee.update_user_rate, trigger="cron", hour="01", minute="00"
+            fee.update_user_rate, trigger="cron", hour="01", minute="30"
         )
         scheduler.start()
         signal.signal(signal.SIGINT, handle_signal)
