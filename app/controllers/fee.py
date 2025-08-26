@@ -484,7 +484,7 @@ def update_unified_user_rates():
                     "address": _address,
                 }
                 data.append(_ret)
-                user_fee.create_update_user_fee_data(_ret)
+                # user_fee.create_update_user_fee_data(_ret)
         except:
             logger.info(f"{_account_id} - new rates are not updated")
 
