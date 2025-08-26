@@ -132,7 +132,8 @@ def set_broker_user_fee(_data):
                 data[_fee_key] = []
             data[_fee_key].append(_da["account_id"])
 
-        batch_size = 480 if config["common"]["orderly_network"].lower() == "mainnet" else 250
+        # batch_size = 480 if config["common"]["orderly_network"].lower() == "mainnet" else 250
+        batch_size = 250
         for _fk, _fv in data.items():
             maker_fee_rate = Decimal(_fk.split(":")[0])
             taker_fee_rate = Decimal(_fk.split(":")[1])
