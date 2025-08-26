@@ -455,14 +455,16 @@ def update_unified_user_rates():
     #         address2account_ids[_row.address] = [_row.account_id]
     #     else:
     #         address2account_ids[_row.address].append(_row.account_id)
-    account_id2address = {_row.account_id: _row.address for _row in user_fee.pd.df.itertuples()}
+    # account_id2address = {_row.account_id: _row.address for _row in user_fee.pd.df.itertuples()}
 
     redis_client = get_redis_client()
     new_futures_maker_fee_rate = Decimal(redis_client.get(REDIS_KEY_UNIFIED_MAKER_FEE_RATE)) / 100
     new_futures_taker_fee_rate = Decimal(redis_client.get(REDIS_KEY_UNIFIED_TAKER_FEE_RATE)) / 100
 
     data = []
-    for _account_id, _address in account_id2address.items():
+    # for _account_id, _address in account_id2address.items():
+    for _row in user_fee.pd.df.itertuples():
+        _account_id, _address = _row.account_id, _row.address
         old_user_fee = user_fee.pd.query_data(_account_id)
         if not old_user_fee.empty:
             _old_futures_maker_fee_rate = Decimal(old_user_fee.futures_maker_fee_rate.values[0])
