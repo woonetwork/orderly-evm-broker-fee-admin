@@ -455,51 +455,38 @@ def update_unified_user_rates():
     #         address2account_ids[_row.address] = [_row.account_id]
     #     else:
     #         address2account_ids[_row.address].append(_row.account_id)
-    # account_id2address = {_row.account_id: _row.address for _row in user_fee.pd.df.itertuples()}
 
     redis_client = get_redis_client()
     new_futures_maker_fee_rate = Decimal(redis_client.get(REDIS_KEY_UNIFIED_MAKER_FEE_RATE)) / 100
     new_futures_taker_fee_rate = Decimal(redis_client.get(REDIS_KEY_UNIFIED_TAKER_FEE_RATE)) / 100
 
     data = []
-    # for _account_id, _address in account_id2address.items():
     for _row in user_fee.pd.df.itertuples():
         _account_id, _address = _row.account_id, _row.address
-        old_user_fee = user_fee.pd.query_data(_account_id)
-        if not old_user_fee.empty:
-            _old_futures_maker_fee_rate = Decimal(old_user_fee.futures_maker_fee_rate.values[0])
-            _old_futures_taker_fee_rate = Decimal(old_user_fee.futures_taker_fee_rate.values[0])
-            try:
-                if (
-                    new_futures_maker_fee_rate
-                    != _old_futures_maker_fee_rate
-                    or new_futures_taker_fee_rate
-                    != _old_futures_taker_fee_rate
-                ):
-                    maker_fee_rate = new_futures_maker_fee_rate
-                    taker_fee_rate = new_futures_taker_fee_rate
-                    logger.info(
-                        f"{_account_id} - New Maker Fee Rate: {maker_fee_rate}, Taker Fee Rate: {taker_fee_rate}"
-                    )
-                    _ret = {
-                        "account_id": _account_id,
-                        "futures_maker_fee_rate": maker_fee_rate,
-                        "futures_taker_fee_rate": taker_fee_rate,
-                        "address": _address,
-                    }
-                    data.append(_ret)
-                    user_fee.create_update_user_fee_data(_ret)
-            except:
-                logger.info(f"{_account_id} - new rates are not updated")
-        else:
-            _ret = {
-                "account_id": _account_id,
-                "futures_maker_fee_rate": new_futures_maker_fee_rate,
-                "futures_taker_fee_rate": new_futures_taker_fee_rate,
-                "address": _address,
-            }
-            data.append(_ret)
-            user_fee.create_update_user_fee_data(_ret)
+        _old_futures_maker_fee_rate = Decimal(_row.futures_maker_fee_rate)
+        _old_futures_taker_fee_rate = Decimal(_row.futures_taker_fee_rate)
+        try:
+            if (
+                new_futures_maker_fee_rate
+                != _old_futures_maker_fee_rate
+                or new_futures_taker_fee_rate
+                != _old_futures_taker_fee_rate
+            ):
+                maker_fee_rate = new_futures_maker_fee_rate
+                taker_fee_rate = new_futures_taker_fee_rate
+                logger.info(
+                    f"{_account_id} - New Maker Fee Rate: {maker_fee_rate}, Taker Fee Rate: {taker_fee_rate}"
+                )
+                _ret = {
+                    "account_id": _account_id,
+                    "futures_maker_fee_rate": maker_fee_rate,
+                    "futures_taker_fee_rate": taker_fee_rate,
+                    "address": _address,
+                }
+                data.append(_ret)
+                user_fee.create_update_user_fee_data(_ret)
+        except:
+            logger.info(f"{_account_id} - new rates are not updated")
 
     ok_count, fail_count = set_broker_user_fee(data)
 
