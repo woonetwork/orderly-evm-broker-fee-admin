@@ -501,8 +501,8 @@ def update_user_rate():
         "========================Orderly EVM Broker Fee Admin Startup========================"
     )
     init_broker_fees()
-    update_unified_user_rates()
+    # update_unified_user_rates()
 
-    # NOTE: tier 1 ~ 6 logic, offline since 21 Aug 2025
-    # init_staking_bals()
-    # update_user_rates()
+    # NOTE: tier 1 ~ 7 logic, online since 03 Sep 2025
+    init_staking_bals()
+    update_user_rates()
