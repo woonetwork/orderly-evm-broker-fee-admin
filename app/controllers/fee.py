@@ -56,7 +56,13 @@ def init_broker_fees():
                 #     "futures_maker_fee_rate": _data["maker_fee_rate"],
                 #     "futures_taker_fee_rate": _data["taker_fee_rate"],
                 # }
-                broker_fee.create_update_user_fee_data(_data, delete_flag=True)
+                user_fee_data = {
+                    "account_id": _data["account_id"],
+                    "futures_maker_fee_rate": _data["maker_fee_rate"],
+                    "futures_taker_fee_rate": _data["taker_fee_rate"],
+                    "address": _data["address"],
+                }
+                broker_fee.create_update_user_fee_data(user_fee_data, delete_flag=True)
         _count += 1
         time.sleep(1)
 
