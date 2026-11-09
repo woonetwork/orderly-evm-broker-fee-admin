@@ -72,15 +72,15 @@ def clean_none_value(input_dict):
 
 def send_message(alert_message):
     telegram_alert_to = "\n@Merlin_WG @Chiwei_WG"
-    slack_alert_to = "\n<@merlin> <@chiwei.huang>"
+    # slack_alert_to = "\n<@merlin> <@chiwei.huang>"
     Bot(config["common"]["telegram_bot_token"]).send_message(
         config["common"]["telegram_chat_id"],
         alert_message + telegram_alert_to,
         reply_to_message_id=config["common"]["telegram_message_id"]
     )
-    slack.WebClient(config["common"]["slack_bot_token"]).chat_postMessage(
-        channel=config["common"]["slack_channel"], text=alert_message + slack_alert_to
-    )
+    # slack.WebClient(config["common"]["slack_bot_token"]).chat_postMessage(
+    #     channel=config["common"]["slack_channel"], text=alert_message + slack_alert_to
+    # )
 
 
 def is_evm_address(address):
